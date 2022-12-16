@@ -1,0 +1,26 @@
+{
+  "name": "tw_google_calendar",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node ./app.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ThibaultPougin/tw_google_calendar.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ThibaultPougin/tw_google_calendar/issues"
+  },
+  "homepage": "https://github.com/ThibaultPougin/tw_google_calendar#readme",
+  "dependencies": {
+    "@google-cloud/local-auth": "^2.1.0",
+    "dotenv": "^16.0.3",
+    "googleapis": "^105.0.0",
+    "node-fetch": "^2.6.1"
+  }
+}
