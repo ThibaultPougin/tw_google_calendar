@@ -4,4 +4,5 @@ https://fusebit.io/blog/events-in-the-google-calendar-API/?utm_source=www.google
 
 https://apidocs.teamwork.com/docs/teamwork/c3ed8a1fc3ad9-create-a-time-entry-linked-to-a-specific-task
 
-//TODO : Ajouter taches non teamwork (réunions, congés, daily, weekly, autre) + rédiger mode opératoire
+//TODO : Ajouter taches non teamwork (réunions, congés) + log des taches qui n'ont pas fait l'objet d'un temps, proposer de renseigner un temps pour cette tâche à partir de la console + clean code + commentaire + rédiger mode opératoire
++ couleur taches google calendar en fonction du summary
