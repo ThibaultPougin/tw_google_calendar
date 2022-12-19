@@ -19,8 +19,10 @@
   "homepage": "https://github.com/ThibaultPougin/tw_google_calendar#readme",
   "dependencies": {
     "@google-cloud/local-auth": "^2.1.0",
+    "chalk": "^4.1.2",
     "dotenv": "^16.0.3",
     "googleapis": "^105.0.0",
+    "inquirer": "^8.2.5",
     "node-fetch": "^2.6.1"
   }
 }
