@@ -64,11 +64,11 @@ const google_agenda_controller = {
             const length = task.length;
             const string1 = event.summary.slice(index + length);
             teamwork_id = string1.match(/[0-9]+/)[0];
-        } else if (event.summary && !event.summary.includes('https://helliosolutions.teamwork.com') && (event.summary.includes('Daily meeting') || event.summary.includes('Weekly Dev - Point Projets') || event.summary.includes('Attribution des US') || event.summary.includes('Sprint') || event.summary.includes('Temps TW'))) {
+        } else if (event.summary && !event.summary.includes('https://helliosolutions.teamwork.com') && (event.summary.includes('Daily meeting') || event.summary.includes('Weekly Dev - Point Projets') || event.summary.includes('Attribution des US') || event.summary.includes('Sprint') || event.summary.includes('Temps TW') || event.summary.includes('[PROJET]'))) {
             teamwork_id = process.env.TEAMWORK_PROJECT_REPOSITORY_ID;    
-        } else if (event.summary && !event.summary.includes('https://helliosolutions.teamwork.com') && event.summary.includes('Formation')) {
+        } else if (event.summary && !event.summary.includes('https://helliosolutions.teamwork.com') && event.summary.includes('[FORMATION]')) {
             teamwork_id = process.env.TEAMWORK_FORMATION_REPOSITORY_ID;
-        } else if(event.summary && !event.summary.includes('https://helliosolutions.teamwork.com') && event.summary.includes('Support') || event.summary.includes('AH')) {
+        } else if(event.summary && !event.summary.includes('https://helliosolutions.teamwork.com') && event.summary.includes('[SUPPORT]') || event.summary.includes('[AH]')) {
             teamwork_id = process.env.TEAMWORK_SUPPORT_REPOSITORY_ID;   
         } else if(event.attendees) {
             teamwork_id = process.env.TEAMWORK_REUNION_REPOSITORY_ID;   
@@ -124,7 +124,7 @@ const google_agenda_controller = {
                         hours++;
                     };
                    
-                    // teamwork_controller.log_time_teamwork(teamwork_id, start_date, start_time, hours, minutes);
+                    teamwork_controller.log_time_teamwork(teamwork_id, start_date, start_time, hours, minutes);
 
                     total_log_hours = total_log_hours + hours;
                     total_log_minutes = total_log_minutes + minutes;

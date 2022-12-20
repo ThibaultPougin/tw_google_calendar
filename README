@@ -9,5 +9,4 @@ https://stackoverflow.com/questions/72518081/how-can-i-use-more-than-one-inquire
 https://stackoverflow.com/questions/56412516/conditional-prompt-rendering-in-inquirer
 https://www.digitalocean.com/community/tutorials/nodejs-interactive-command-line-prompts
 
-//TODO : Ajouter taches non teamwork (réunions, congés) + log des taches qui n'ont pas fait l'objet d'un temps, proposer de renseigner un temps pour cette tâche à partir de la console + clean code + commentaire + rédiger mode opératoire
-+ couleur taches google calendar en fonction du summary + vérifier qu'un temps n'existe pas déjà avant de le loguer
+//TODO : Ajout des tâches sur la journée (vacances) +  clean code + commentaire + rédiger mode opératoire
