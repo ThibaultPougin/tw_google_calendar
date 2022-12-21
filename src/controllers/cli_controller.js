@@ -42,6 +42,10 @@ const cli_controller = {
                     event_to_add.push({event_id: question.split(' ').pop(), teamwork_id: process.env.TEAMWORK_FORMATION_REPOSITORY_ID});
                 };
 
+                if(question.includes('Question 2') && answers[question] === 'Vacances') {
+                    event_to_add.push({event_id: question.split(' ').pop(), teamwork_id: process.env.TEAMWORK_VACANCES_REPOSITORY_ID});
+                };
+
                 if(question.includes('Question 3')) {
                     event_to_add.push({event_id: question.split(' ').pop(), teamwork_id: answers[question]});
                 };               
@@ -82,7 +86,7 @@ const cli_controller = {
                 hours++;
             };
 
-            teamwork_controller.log_time_teamwork(event.teamwork_id, start_date, start_time, hours, minutes);
+            // teamwork_controller.log_time_teamwork(event.teamwork_id, start_date, start_time, hours, minutes);
 
             total_log_hours = total_log_hours + hours;
             total_log_minutes = total_log_minutes + minutes;
@@ -134,7 +138,7 @@ const cli_controller = {
                 type: 'list',
                 name: 'Question 2 ' + event.id,
                 message: `Quel est le type de l'événement ?`,
-                choices: ['Support', 'Réunion', 'Gestion de projet', 'Formation', 'Autre'],
+                choices: ['Support', 'Réunion', 'Gestion de projet', 'Formation', 'Vacances', 'Autre'],
                 when: (answers) => answers['Question 1 ' + event.id] === 'Oui'
             },
             {

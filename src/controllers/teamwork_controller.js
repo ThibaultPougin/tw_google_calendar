@@ -10,50 +10,60 @@ const teamwork_controller = {
 
     log_time_teamwork: async (task_id, start_date, start_time, hours, minutes) => {
 
-        let log_this_time = true;
+        let is_week_day = await teamwork_controller.verif_if_week_day(start_date);
 
-        let log_time = await teamwork_controller.get_log_time_teamwork(task_id);
-        let already_log_time = log_time.timeEntries;
+        if (is_week_day) {
 
-        already_log_time.forEach(time_log => {
+            let log_this_time = true;
+
+            let log_time = await teamwork_controller.get_log_time_teamwork(task_id);
             
-            if(time_log.date.substring(0, 10) === start_date) {
-                log_this_time = false;
-            };           
-        });
+            if (log_time) {
 
-        if(log_this_time === true) {
+                let already_log_time = log_time.timeEntries;
 
-            let body = {
-                "tags": [
+                already_log_time.forEach(time_log => {
                 
-                ],
-                "timelog": {
-                "date": start_date,
-                "time": start_time,
-                "description": "Vacances",
-                "hours": hours,
-                "minutes": minutes,
-                "hasStartTime": true,
-                "isBillable": true
-                }
-            };
-        
-            try {
-        
-                await fetch('https://helliosolutions.teamwork.com/projects/api/v3/tasks/' + task_id + '/time.json', {
-                    method: 'POST',
-                    body: JSON.stringify(body),
-                    headers: {
-                        'Authorization': 'Basic ' + Buffer.from(teamwork_username + ":" + teamwork_password).toString('base64')
-                    }
+                    if(time_log.date.substring(0, 10) === start_date) {
+                        log_this_time = false;
+                    };           
                 });
-        
-            } catch (error) {
-                console.log(error);
             };
 
-        };
+            if(log_this_time === true) {
+
+                let body = {
+                    "tags": [
+                    
+                    ],
+                    "timelog": {
+                    "date": start_date,
+                    "time": start_time,
+                    "description": "Vacances",
+                    "hours": hours,
+                    "minutes": minutes,
+                    "hasStartTime": true,
+                    "isBillable": true
+                    }
+                };
+            
+                try {
+            
+                    await fetch('https://helliosolutions.teamwork.com/projects/api/v3/tasks/' + task_id + '/time.json', {
+                        method: 'POST',
+                        body: JSON.stringify(body),
+                        headers: {
+                            'Authorization': 'Basic ' + Buffer.from(teamwork_username + ":" + teamwork_password).toString('base64')
+                        }
+                    });
+            
+                } catch (error) {
+                    console.log(error);
+                };
+
+            };
+
+        };        
     },
 
     get_log_time_teamwork: async (task_id) => {
@@ -77,6 +87,17 @@ const teamwork_controller = {
         };
 
         return tw_answer;
+    },
+
+    verif_if_week_day: async (start_date) => {
+
+        let day_number = new Date(start_date).getDay();
+
+        if (day_number >= 1 && day_number <= 5) {
+            return true;
+        } else {
+            return false;
+        };
     }
 }
 

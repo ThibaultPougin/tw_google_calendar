@@ -70,6 +70,8 @@ const google_agenda_controller = {
             teamwork_id = process.env.TEAMWORK_FORMATION_REPOSITORY_ID;
         } else if(event.summary && !event.summary.includes('https://helliosolutions.teamwork.com') && event.summary.includes('[SUPPORT]') || event.summary.includes('[AH]')) {
             teamwork_id = process.env.TEAMWORK_SUPPORT_REPOSITORY_ID;   
+        } else if(event.summary && event.summary.includes('[VACANCES]')) {
+            teamwork_id = process.env.TEAMWORK_VACANCES_REPOSITORY_ID;   
         } else if(event.attendees) {
             teamwork_id = process.env.TEAMWORK_REUNION_REPOSITORY_ID;   
         };
@@ -95,7 +97,31 @@ const google_agenda_controller = {
     
         events.forEach(event => {
 
-            // Si l'événement a une date de début et une date de fin (exclu les événements sur une journée entière comme les congés)
+            // Prise en compte des événements sur la journée entière 
+            if(event.start && !event.start.dateTime && event.start.date && event.end && !event.end.dateTime && event.end.date) {
+                          
+                event['isDayEvent'] = true;
+                event.start['dateTime'] = event.start.date + 'T09:00:00+01:00';
+                event.end['dateTime'] = event.end.date + 'T17:00:00+01:00';
+                event['dayToLog'] = [];
+
+                let number_to_log = event.end.date.substring(8, 10) - event.start.date.substring(8, 10);
+
+                for (let i = 0; i < number_to_log; i++) {
+                    
+                    let new_day = parseInt(event.start.date.substring(8, 10), 10) + i;
+                    let final_day = event.start.date.slice(0, -2) + new_day.toString();
+
+                    let is_week_day = google_agenda_controller.verif_if_week_day(final_day);
+
+                    if(is_week_day === true) {
+                        event['dayToLog'].push(final_day); 
+                    };          
+                    
+                };
+            };
+
+            // Si l'événement a une date de début et une date de fin
             if(event.start && event.start.dateTime && event.end && event.end.dateTime) {
                 
                 let teamwork_id = google_agenda_controller.get_teamwork_task_id(event);
@@ -124,15 +150,33 @@ const google_agenda_controller = {
                         hours++;
                     };
                    
-                    teamwork_controller.log_time_teamwork(teamwork_id, start_date, start_time, hours, minutes);
+                    if(event['isDayEvent'] === true) {
 
-                    total_log_hours = total_log_hours + hours;
-                    total_log_minutes = total_log_minutes + minutes;
+                        event['dayToLog'].forEach(date => {
 
-                    if (total_log_minutes >= 60) {
-                        total_log_minutes = total_log_minutes - 60;
-                        total_log_hours++;
-                    };
+                            // teamwork_controller.log_time_teamwork(teamwork_id, date, start_time, hours, minutes);
+                            total_log_hours = total_log_hours + hours;
+                            total_log_minutes = total_log_minutes + minutes;
+
+                            if (total_log_minutes >= 60) {
+                                total_log_minutes = total_log_minutes - 60;
+                                total_log_hours++;
+                            };
+                        });
+
+                    } else {
+                        // teamwork_controller.log_time_teamwork(teamwork_id, start_date, start_time, hours, minutes);
+                        
+                        total_log_hours = total_log_hours + hours;
+                        total_log_minutes = total_log_minutes + minutes;
+
+                        if (total_log_minutes >= 60) {
+                            total_log_minutes = total_log_minutes - 60;
+                            total_log_hours++;
+                        };
+                    }
+                    
+                    
                 } else {
                     unlog_events.push(event);
 
@@ -164,7 +208,18 @@ const google_agenda_controller = {
 
         cli_controller.handle_interactive_command_line(total_log_hours, total_unlog_hours, unlog_events);
 
-    }    
+    },
+    
+    verif_if_week_day: (start_date) => {
+
+        let day_number = new Date(start_date).getDay();
+
+        if (day_number >= 1 && day_number <= 5) {
+            return true;
+        } else {
+            return false;
+        };
+    }
 };
 
 module.exports = google_agenda_controller;
