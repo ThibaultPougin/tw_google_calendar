@@ -154,7 +154,7 @@ const google_agenda_controller = {
 
                         event['dayToLog'].forEach(date => {
 
-                            // teamwork_controller.log_time_teamwork(teamwork_id, date, start_time, hours, minutes);
+                            teamwork_controller.log_time_teamwork(teamwork_id, date, start_time, hours, minutes);
                             total_log_hours = total_log_hours + hours;
                             total_log_minutes = total_log_minutes + minutes;
 
@@ -165,7 +165,7 @@ const google_agenda_controller = {
                         });
 
                     } else {
-                        // teamwork_controller.log_time_teamwork(teamwork_id, start_date, start_time, hours, minutes);
+                        teamwork_controller.log_time_teamwork(teamwork_id, start_date, start_time, hours, minutes);
                         
                         total_log_hours = total_log_hours + hours;
                         total_log_minutes = total_log_minutes + minutes;

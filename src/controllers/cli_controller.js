@@ -86,7 +86,7 @@ const cli_controller = {
                 hours++;
             };
 
-            // teamwork_controller.log_time_teamwork(event.teamwork_id, start_date, start_time, hours, minutes);
+            teamwork_controller.log_time_teamwork(event.teamwork_id, start_date, start_time, hours, minutes);
 
             total_log_hours = total_log_hours + hours;
             total_log_minutes = total_log_minutes + minutes;
