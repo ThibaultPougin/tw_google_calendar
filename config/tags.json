@@ -64,12 +64,6 @@
         "tag": "[VACANCES]",
         "variable_environnement": "TEAMWORK_VACANCES_REPOSITORY_ID",
         "cli_choice": true
-    },
-
-    "Blablablabla" : {
-        "tag": "[Blabla]",
-        "variable_environnement": "TEAMWORK_VACANCES_REPOSITORY_ID",
-        "cli_choice": true
     }
 
 }
