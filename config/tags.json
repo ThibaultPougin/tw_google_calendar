@@ -1,0 +1,75 @@
+{
+
+    "Daily meeting" : {
+        "tag": "Daily meeting",
+        "variable_environnement": "TEAMWORK_PROJECT_REPOSITORY_ID",
+        "cli_choice": false
+    },
+
+    "Weekly meeting" : {
+        "tag": "Weekly Dev - Point Projets",
+        "variable_environnement": "TEAMWORK_PROJECT_REPOSITORY_ID",
+        "cli_choice": false
+    },
+
+    "Attribution des US" : {
+        "tag": "Attribution des US",
+        "variable_environnement": "TEAMWORK_PROJECT_REPOSITORY_ID",
+        "cli_choice": false
+    },
+
+    "Sprint" : {
+        "tag": "Sprint",
+        "variable_environnement": "TEAMWORK_PROJECT_REPOSITORY_ID",
+        "cli_choice": false
+    },
+
+    "Temps TW" : {
+        "tag": "Temps TW",
+        "variable_environnement": "TEAMWORK_PROJECT_REPOSITORY_ID",
+        "cli_choice": false
+    },
+
+    "Support" : {
+        "tag": "[SUPPORT]",
+        "variable_environnement": "TEAMWORK_SUPPORT_REPOSITORY_ID",
+        "cli_choice": true
+    },
+
+    "Réunion" : {
+        "tag": "[REUNION]",
+        "variable_environnement": "TEAMWORK_REUNION_REPOSITORY_ID",
+        "cli_choice": true
+    },
+
+    "Gestion de projet" : {
+        "tag": "[PROJET]",
+        "variable_environnement": "TEAMWORK_PROJECT_REPOSITORY_ID",
+        "cli_choice": true
+    },
+
+    "Formation" : {
+        "tag": "[FORMATION]",
+        "variable_environnement": "TEAMWORK_FORMATION_REPOSITORY_ID",
+        "cli_choice": true
+    },
+
+    "AH" : {
+        "tag": "[AH]",
+        "variable_environnement": "TEAMWORK_SUPPORT_REPOSITORY_ID",
+        "cli_choice": true
+    },
+
+    "Vacances" : {
+        "tag": "[VACANCES]",
+        "variable_environnement": "TEAMWORK_VACANCES_REPOSITORY_ID",
+        "cli_choice": true
+    },
+
+    "Blablablabla" : {
+        "tag": "[Blabla]",
+        "variable_environnement": "TEAMWORK_VACANCES_REPOSITORY_ID",
+        "cli_choice": true
+    }
+
+}

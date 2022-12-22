@@ -1,7 +1,11 @@
 const inquirer = require('inquirer');
 const chalk = require('chalk');
+const fs = require("fs");
 
 const teamwork_controller = require('./teamwork_controller');
+
+const tags_file = fs.readFileSync('./config/tags.json');
+const all_tags = JSON.parse(tags_file);
 
 const cli_controller = {
 
@@ -26,24 +30,12 @@ const cli_controller = {
 
             for (const question in answers) {
 
-                if(question.includes('Question 2') && answers[question] === 'Support') {
-                    event_to_add.push({event_id: question.split(' ').pop(), teamwork_id: process.env.TEAMWORK_SUPPORT_REPOSITORY_ID});
-                };
+                for (const tag in all_tags) {
 
-                if(question.includes('Question 2') && answers[question] === 'Réunion') {
-                    event_to_add.push({event_id: question.split(' ').pop(), teamwork_id: process.env.TEAMWORK_REUNION_REPOSITORY_ID});
-                };
-
-                if(question.includes('Question 2') && answers[question] === 'Gestion de projet') {
-                    event_to_add.push({event_id: question.split(' ').pop(), teamwork_id: process.env.TEAMWORK_PROJECT_REPOSITORY_ID});
-                };
-
-                if(question.includes('Question 2') && answers[question] === 'Formation') {
-                    event_to_add.push({event_id: question.split(' ').pop(), teamwork_id: process.env.TEAMWORK_FORMATION_REPOSITORY_ID});
-                };
-
-                if(question.includes('Question 2') && answers[question] === 'Vacances') {
-                    event_to_add.push({event_id: question.split(' ').pop(), teamwork_id: process.env.TEAMWORK_VACANCES_REPOSITORY_ID});
+                    if(question.includes('Question 2') && answers[question] === tag) {
+                        variable_environnement = all_tags[tag]['variable_environnement'];
+                        event_to_add.push({event_id: question.split(' ').pop(), teamwork_id: process.env[variable_environnement]});
+                    };
                 };
 
                 if(question.includes('Question 3')) {
@@ -129,6 +121,8 @@ const cli_controller = {
                 hours++;
             };
 
+            let question2_answers = await cli_controller.create_question2_answers();
+
             let question = [{
                 type: 'list',
                 name: 'Question 1 ' + event.id,
@@ -138,7 +132,7 @@ const cli_controller = {
                 type: 'list',
                 name: 'Question 2 ' + event.id,
                 message: `Quel est le type de l'événement ?`,
-                choices: ['Support', 'Réunion', 'Gestion de projet', 'Formation', 'Vacances', 'Autre'],
+                choices: question2_answers,
                 when: (answers) => answers['Question 1 ' + event.id] === 'Oui'
             },
             {
@@ -151,6 +145,22 @@ const cli_controller = {
             return question;
 
         }        
+    },
+
+    create_question2_answers: async () => {
+
+        let question2_answers = [];
+
+        for (const tag in all_tags) {
+
+            if (all_tags[tag]['cli_choice'] === true) {
+                question2_answers.push(tag);
+            };
+        };
+
+        question2_answers.push('Autre');
+        
+        return question2_answers;
     }
 
 }

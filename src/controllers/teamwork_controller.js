@@ -4,8 +4,6 @@ require('dotenv').config();
 let teamwork_username = process.env.TEAMWORK_USERNAME;
 let teamwork_password = process.env.TEAMWORK_PASSWORD;
 
-
-
 const teamwork_controller = {
 
     log_time_teamwork: async (task_id, start_date, start_time, hours, minutes) => {

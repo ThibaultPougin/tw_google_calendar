@@ -1,7 +1,11 @@
 const { google } = require('googleapis');
+const fs = require("fs");
 
 const teamwork_controller = require('./teamwork_controller');
 const cli_controller = require('./cli_controller');
+
+const tags_file = fs.readFileSync('./config/tags.json');
+const all_tags = JSON.parse(tags_file);
 
 let google_client_id = process.env.GOOGLE_CLIENT_ID;
 let google_client_secret = process.env.GOOGLE_CLIENT_SECRET;
@@ -58,25 +62,36 @@ const google_agenda_controller = {
 
         let teamwork_id = undefined; 
       
-        if(event.summary && event.summary.includes('https://helliosolutions.teamwork.com')) {
+        if(event.summary && event.summary.includes('https://helliosolutions.teamwork.com') && !event.attendees) {
             const task = 'tasks/';
             const index = event.summary.indexOf(task);
             const length = task.length;
             const string1 = event.summary.slice(index + length);
             teamwork_id = string1.match(/[0-9]+/)[0];
-        } else if (event.summary && !event.summary.includes('https://helliosolutions.teamwork.com') && (event.summary.includes('Daily meeting') || event.summary.includes('Weekly Dev - Point Projets') || event.summary.includes('Attribution des US') || event.summary.includes('Sprint') || event.summary.includes('Temps TW') || event.summary.includes('[PROJET]'))) {
-            teamwork_id = process.env.TEAMWORK_PROJECT_REPOSITORY_ID;    
-        } else if (event.summary && !event.summary.includes('https://helliosolutions.teamwork.com') && event.summary.includes('[FORMATION]')) {
-            teamwork_id = process.env.TEAMWORK_FORMATION_REPOSITORY_ID;
-        } else if(event.summary && !event.summary.includes('https://helliosolutions.teamwork.com') && event.summary.includes('[SUPPORT]') || event.summary.includes('[AH]')) {
-            teamwork_id = process.env.TEAMWORK_SUPPORT_REPOSITORY_ID;   
-        } else if(event.summary && event.summary.includes('[VACANCES]')) {
-            teamwork_id = process.env.TEAMWORK_VACANCES_REPOSITORY_ID;   
-        } else if(event.attendees) {
-            teamwork_id = process.env.TEAMWORK_REUNION_REPOSITORY_ID;   
+        } else if (event.summary && !event.summary.includes('https://helliosolutions.teamwork.com') && !event.attendees) {
+            teamwork_id = google_agenda_controller.retrieve_tag(event);
+        } else if(event.summary && !event.summary.includes('https://helliosolutions.teamwork.com') && event.attendees) {
+            teamwork_id = google_agenda_controller.retrieve_tag(event);
+            if(!teamwork_id) {
+                teamwork_id = process.env.TEAMWORK_REUNION_REPOSITORY_ID;
+            };      
         };
 
         return teamwork_id;
+    },
+
+    retrieve_tag: (event) => {
+
+        let teamwork_id = undefined;
+
+        for (const tag in all_tags) {
+
+            if (event.summary.includes(all_tags[tag]['tag'])) {
+                variable_environnement = all_tags[tag]['variable_environnement'];
+                teamwork_id = process.env[variable_environnement];
+                return teamwork_id;
+            };
+        };
     },
 
     start: async () => {
