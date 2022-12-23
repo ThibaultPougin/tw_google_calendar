@@ -1,14 +1,44 @@
 const fetch = require('node-fetch');
-require('dotenv').config();
+const fs = require("fs");
 
 let teamwork_username = process.env.TEAMWORK_USERNAME;
 let teamwork_password = process.env.TEAMWORK_PASSWORD;
 
+const global_controller = require('./global_controller');
+
+const tags_file = fs.readFileSync('./config/tags.json');
+const all_tags = JSON.parse(tags_file);
+
 const teamwork_controller = {
 
+    // Récupère les temps renseigné pour une tâche Teamwork
+    get_log_time_teamwork: async (task_id) => {
+
+        let tw_answer = undefined;
+        
+        try {
+    
+            await fetch('https://helliosolutions.teamwork.com/projects/api/v2/tasks/' + task_id +'/time_entries.json?getTotals=true&includeSubTasks=1&page=1&pageSize=250&sortOrder=desc', {
+                method: 'GET',
+                headers: {
+                    'Authorization': 'Basic ' + Buffer.from(teamwork_username + ":" + teamwork_password).toString('base64')
+                }
+            })
+            .then(async answer => {
+                tw_answer = await answer.json();
+            });            
+    
+        } catch (error) {
+            console.log(error);
+        };
+
+        return tw_answer;
+    },
+    
+    // Renseigne un temps sur Teamwork
     log_time_teamwork: async (task_id, start_date, start_time, hours, minutes) => {
 
-        let is_week_day = await teamwork_controller.verif_if_week_day(start_date);
+        let is_week_day = await global_controller.verif_if_week_day(start_date);
 
         if (is_week_day) {
 
@@ -60,42 +90,50 @@ const teamwork_controller = {
                 };
 
             };
-
         };        
     },
 
-    get_log_time_teamwork: async (task_id) => {
+    // Récupère l'id de la tâche teamwork en fonction des tags renseigné dans le fichier tags.json
+    retrieve_tag: (event) => {
 
-        let tw_answer = undefined;
-        
-        try {
-    
-            await fetch('https://helliosolutions.teamwork.com/projects/api/v2/tasks/' + task_id +'/time_entries.json?getTotals=true&includeSubTasks=1&page=1&pageSize=250&sortOrder=desc', {
-                method: 'GET',
-                headers: {
-                    'Authorization': 'Basic ' + Buffer.from(teamwork_username + ":" + teamwork_password).toString('base64')
-                }
-            })
-            .then(async answer => {
-                tw_answer = await answer.json();
-            });            
-    
-        } catch (error) {
-            console.log(error);
+        let teamwork_id = undefined;
+
+        for (const tag in all_tags) {
+
+            if (event.summary.includes(all_tags[tag]['tag'])) {
+                variable_environnement = all_tags[tag]['variable_environnement'];
+                teamwork_id = process.env[variable_environnement];
+                return teamwork_id;
+            };
         };
-
-        return tw_answer;
     },
 
-    verif_if_week_day: async (start_date) => {
+    // Récupère l'id de la tâche Teamwork en fonction de l'événement google agenda
+    get_teamwork_task_id: (event) => {
 
-        let day_number = new Date(start_date).getDay();
+        let teamwork_id = undefined; 
+      
+        if(event.summary && event.summary.includes('https://helliosolutions.teamwork.com') && !event.attendees) {
+            
+        const task = 'tasks/';
+            const index = event.summary.indexOf(task);
+            const length = task.length;
+            const string1 = event.summary.slice(index + length);
+            teamwork_id = string1.match(/[0-9]+/)[0];
 
-        if (day_number >= 1 && day_number <= 5) {
-            return true;
-        } else {
-            return false;
+        } else if (event.summary && !event.summary.includes('https://helliosolutions.teamwork.com') && !event.attendees) {
+            
+            teamwork_id = teamwork_controller.retrieve_tag(event);
+
+        } else if(event.summary && !event.summary.includes('https://helliosolutions.teamwork.com') && event.attendees) {
+            
+            teamwork_id = teamwork_controller.retrieve_tag(event);
+            if(!teamwork_id) {
+                teamwork_id = process.env.TEAMWORK_REUNION_REPOSITORY_ID;
+            };      
         };
+
+        return teamwork_id;
     }
 }
 

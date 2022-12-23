@@ -3,12 +3,14 @@ const chalk = require('chalk');
 const fs = require("fs");
 
 const teamwork_controller = require('./teamwork_controller');
+const global_controller = require('./global_controller');
 
 const tags_file = fs.readFileSync('./config/tags.json');
 const all_tags = JSON.parse(tags_file);
 
 const cli_controller = {
 
+    // Gère le CLI interactif lorsque des événements de l'agenda google à qui aucune tâche Teamwork n'a pu être associée sont détéctés
     handle_interactive_command_line: async (total_log_hours, total_unlog_hours, unlog_events) => {
 
         console.log(`- Nombres d'heures synchronisées : ${total_log_hours}`);
@@ -48,6 +50,7 @@ const cli_controller = {
         });
     },
 
+    // Synchronise sur Teamwork les temps à ajouter
     add_events: async (total_log_hours, unlog_events, event_to_add) => {
 
         total_log_minutes = 0;
@@ -55,30 +58,9 @@ const cli_controller = {
         for (const event of event_to_add) {
             let find_event = unlog_events.find(e => e.id === event.event_id)
 
-            let split_event = find_event.summary.split('/');
-            let start_date = find_event.start.dateTime.substring(0, 10);
-            let start_time = find_event.start.dateTime.substring(11, 19);
-            let start_hour = find_event.start.dateTime.substring(11, 13);
-            let end_time = find_event.end.dateTime.substring(11, 19);
-            let end_hour = find_event.end.dateTime.substring(11, 13);
-            let start_hour_to_number = parseInt(start_hour, 10);
-            let end_hour_to_number = parseInt(end_hour, 10);
+            let time = global_controller.format_time(find_event);
 
-            let hours = end_hour_to_number - start_hour_to_number - 1;
-
-            let start_minute = find_event.start.dateTime.substring(14, 16);
-            let end_minute = find_event.end.dateTime.substring(14, 16);
-            let start_minute_to_number = parseInt(start_minute, 10);
-            let end_minute_to_number = parseInt(end_minute, 10);
-
-            let minutes = end_minute_to_number + (60 - start_minute_to_number);
-
-            if(minutes >= 60) {
-                minutes = minutes - 60;
-                hours++;
-            };
-
-            teamwork_controller.log_time_teamwork(event.teamwork_id, start_date, start_time, hours, minutes);
+            teamwork_controller.log_time_teamwork(event.teamwork_id, time.start_date, time.start_time, time.hours, time.minutes);
 
             total_log_hours = total_log_hours + hours;
             total_log_minutes = total_log_minutes + minutes;
@@ -94,39 +76,19 @@ const cli_controller = {
 
     },
 
+    // Créé une question pour un événement sans tâche Teamwork associée afin de demander à l'utilisateur s'il souhaite synchroniser l'événement
     create_question: async (event) => {
 
         if(event.start && event.start.dateTime && event.end && event.end.dateTime) {
 
-            let split_event = event.summary.split('/');
-            let start_date = event.start.dateTime.substring(0, 10);
-            let start_time = event.start.dateTime.substring(11, 19);
-            let start_hour = event.start.dateTime.substring(11, 13);
-            let end_time = event.end.dateTime.substring(11, 19);
-            let end_hour = event.end.dateTime.substring(11, 13);
-            let start_hour_to_number = parseInt(start_hour, 10);
-            let end_hour_to_number = parseInt(end_hour, 10);
-
-            let hours = end_hour_to_number - start_hour_to_number - 1;
-
-            let start_minute = event.start.dateTime.substring(14, 16);
-            let end_minute = event.end.dateTime.substring(14, 16);
-            let start_minute_to_number = parseInt(start_minute, 10);
-            let end_minute_to_number = parseInt(end_minute, 10);
-
-            let minutes = end_minute_to_number + (60 - start_minute_to_number);
-
-            if(minutes >= 60) {
-                minutes = minutes - 60;
-                hours++;
-            };
+            let time = global_controller.format_time(event);
 
             let question2_answers = await cli_controller.create_question2_answers();
 
             let question = [{
                 type: 'list',
                 name: 'Question 1 ' + event.id,
-                message: `Souhaitez-vous synchroniser cet événement : ${event.summary} du ${start_date} de ${start_time} à ${end_time} (${hours} heures ${minutes} minutes) ?`,
+                message: `Souhaitez-vous synchroniser cet événement : ${event.summary} du ${time.start_date} de ${time.start_time} à ${time.end_time} (${time.hours} heures ${time.minutes} minutes) ?`,
                 choices: ['Oui', 'Non'],
             }, {
                 type: 'list',
@@ -147,6 +109,7 @@ const cli_controller = {
         }        
     },
 
+    // Créé les réponses possibles à la deuxième question en fonction des tags renseignés dans le fichier tags.json
     create_question2_answers: async () => {
 
         let question2_answers = [];
