@@ -118,7 +118,7 @@ const cli_controller = {
             } else if (answer['QueFaire?'] === 'Ajouter un tag') {
                 
                 //TODO
-                cli_controller.handle_add_tag_question();
+                cli_controller.handle_add_tag_Name_question();
 
             } else if (answer['QueFaire?'] === 'Supprimer un tag') {
 
@@ -255,9 +255,136 @@ const cli_controller = {
         };      
     },
 
-    handle_add_tag_question: () => {
-        
+    handle_add_tag_Name_question: () => {
+
+        return inquirer.prompt([{
+            type: 'input',
+            name: 'NameTag?',
+            message: `A quel type d'événement souhaitez-vous associer votre tag ? (exemple : Vacances) :`
+        }])
+        .then(answer_name => {
+
+            if(answer_name['NameTag?'] === '') {
+
+                console.log('Merci de renseigner un nom valide');
+                cli_controller.handle_add_tag_Name_question();
+
+            } else {
+
+                let tagName_already_exist = false;
+
+                for (const tag in all_tags) {
+
+                    if (tag === answer_name['NameTag?']) {
+
+                        tagName_already_exist = true;
+
+                    };
+
+                };
+
+                if (tagName_already_exist === true) {
+                
+                    console.log(chalk.red.bold(`${emoji.get('exclamation')}Un tag existe déjà pour ce type d'événement : ${all_tags[answer_name['NameTag?']]['tag']} ${emoji.get('exclamation')}`));
+                    cli_controller.handle_queFaire_question();
+
+                } else {
+
+                    cli_controller.handle_add_tag_question(answer_name['NameTag?']);
+                };
+
+            };           
+
+        });       
       
+    },
+
+    handle_add_tag_question: (tag_name) => {
+
+        return inquirer.prompt([{
+            type: 'input',
+            name: 'Tag?',
+            message: `Quel tag souhaitez-vous associer à l'événement ${tag_name} ? (exemple : [VACANCES]) :`
+        }])
+        .then(tag_answer => {
+
+            if (tag_answer['Tag?'] === '') {
+
+                console.log('Merci de renseigner un nom valide');
+                cli_controller.handle_add_tag_question(tag_name);
+
+            } else {
+
+                let tag_already_exist = false;
+
+                for (const tag in all_tags) {
+
+                    if (all_tags[tag]['tag'] === tag_answer['Tag?']) {
+                
+                        tag_already_exist = true;
+                    };
+
+                };
+
+                if (tag_already_exist === true) {
+                
+                    console.log(chalk.red.bold(`${emoji.get('exclamation')}Le tag ${tag_answer['Tag?']} existe déjà ${emoji.get('exclamation')}`));
+                    cli_controller.handle_queFaire_question();
+
+                } else {
+
+                    cli_controller.handle_add_task_id(tag_name, tag_answer['Tag?']);
+                    // cli_controller.handle_add_tag(tag_name, tag_answer['Tag?']);
+                };
+
+            };
+        });
+    },
+
+    handle_add_task_id: (tag_name, tag) => {
+
+        return inquirer.prompt([{
+            type: 'input',
+            name: 'TaskId?',
+            message: `Quel est l'ID de la tâche Teamwork associée au tag ${tag} ? :`
+        }])
+        .then(taskId => {
+
+            if (taskId['TaskId?'] === '') {
+
+                console.log('Merci de renseigner un ID valide');
+                cli_controller.handle_add_task_id(tag_name, tag);
+            } else {
+
+                cli_controller.handle_add_tag(tag_name, tag, taskId['TaskId']);
+
+            };
+
+        });
+           
+    },
+
+    handle_add_tag: (tag_name, tag, task_id) => {
+
+        let tag_obj = {
+            tag: tag,
+            variable_environnement: undefined,
+            cli_choice: true,
+            task_id: task_id
+        };
+
+        all_tags[tag_name] = tag_obj;
+
+        fs.writeFile('./config/tags.json', JSON.stringify(all_tags), (err) => {
+
+            console.log(chalk.green.bold(`Le tag ${tag} a été ajouté !`));
+
+            tags_file = fs.readFileSync('./config/tags.json');
+            all_tags = JSON.parse(tags_file);
+
+            cli_controller.handle_queFaire_question();
+
+        });      
     },
 
     handle_delete_tag_question: () => {

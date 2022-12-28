@@ -137,9 +137,15 @@ const teamwork_controller = {
         for (const tag in all_tags) {
 
             if (event.summary.includes(all_tags[tag]['tag'])) {
-                variable_environnement = all_tags[tag]['variable_environnement'];
-                teamwork_id = process.env[variable_environnement];
-                return teamwork_id;
+
+                if(all_tags[tag]['variable_environnement'] !== undefined) {
+                    let variable_environnement = all_tags[tag]['variable_environnement'];
+                    teamwork_id = process.env[variable_environnement];
+                    return teamwork_id;
+                } else if(all_tags[tag]['task_id'] !== undefined) {
+                    teamwork_id = all_tags[tag]['task_id'];
+                    return teamwork_id;
+                };                
             };
         };
     },
