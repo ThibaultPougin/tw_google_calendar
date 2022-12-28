@@ -10,6 +10,8 @@ const google_agenda_controller = {
     // Récupère la liste des événements entre renseignés dans l'agenda google entre dateTimeStart et dateTimeEnd
     getEvents : async (dateTimeStart, dateTimeEnd) => {
 
+        let events = undefined;
+
         const oauth2Client = new google.auth.OAuth2(google_client_id, google_client_secret);
 
         oauth2Client.setCredentials({
@@ -28,11 +30,12 @@ const google_agenda_controller = {
                 orderBy: 'startTime'
             });
     
-            const events = response.data.items;
+            events = response.data.items;
             return events;
     
         } catch (error) {
-            console.log(error);
+            // console.log(error);
+            return events;
         };
     }
 };

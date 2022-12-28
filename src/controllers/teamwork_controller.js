@@ -1,8 +1,8 @@
 const fetch = require('node-fetch');
 const fs = require("fs");
 
-let teamwork_username = process.env.TEAMWORK_USERNAME;
-let teamwork_password = process.env.TEAMWORK_PASSWORD;
+// let teamwork_username = process.env.TEAMWORK_USERNAME;
+// let teamwork_password = process.env.TEAMWORK_PASSWORD;
 
 const global_controller = require('./global_controller');
 
@@ -12,7 +12,37 @@ const all_tags = JSON.parse(tags_file);
 const teamwork_controller = {
 
     // Récupère les temps renseigné pour une tâche Teamwork
-    get_log_time_teamwork: async (task_id) => {
+    test_connexion: async (teamwork_username, teamwork_password) => {
+
+        let tw_answer = false;
+        
+        try {
+    
+            await fetch('https://helliosolutions.teamwork.com/projects/api/v3/time/10275170.json', {
+                method: 'GET',
+                headers: {
+                    'Authorization': 'Basic ' + Buffer.from(teamwork_username + ":" + teamwork_password).toString('base64')
+                }
+            })
+            .then(async answer => {
+
+                if(answer.status === 401) {
+                    tw_answer = false;
+                } else {
+                    tw_answer = true;
+                };            
+                
+            });            
+    
+        } catch (error) {
+            console.log(error);
+        };
+
+        return tw_answer;
+    },
+
+    // Récupère les temps renseigné pour une tâche Teamwork
+    get_log_time_teamwork: async (teamwork_username, teamwork_password, task_id) => {
 
         let tw_answer = undefined;
         
@@ -25,7 +55,11 @@ const teamwork_controller = {
                 }
             })
             .then(async answer => {
-                tw_answer = await answer.json();
+
+                if(answer.status === 200) {
+                    tw_answer = await answer.json();
+                };             
+                
             });            
     
         } catch (error) {
@@ -36,7 +70,7 @@ const teamwork_controller = {
     },
     
     // Renseigne un temps sur Teamwork
-    log_time_teamwork: async (task_id, start_date, start_time, hours, minutes) => {
+    log_time_teamwork: async (teamwork_username, teamwork_password, task_id, start_date, start_time, hours, minutes) => {
 
         let is_week_day = await global_controller.verif_if_week_day(start_date);
 
@@ -44,18 +78,21 @@ const teamwork_controller = {
 
             let log_this_time = true;
 
-            let log_time = await teamwork_controller.get_log_time_teamwork(task_id);
+            let log_time = await teamwork_controller.get_log_time_teamwork(teamwork_username, teamwork_password, task_id);
             
             if (log_time) {
 
                 let already_log_time = log_time.timeEntries;
 
-                already_log_time.forEach(time_log => {
+                if(already_log_time) {
+                    already_log_time.forEach(time_log => {
                 
-                    if(time_log.date.substring(0, 10) === start_date) {
-                        log_this_time = false;
-                    };           
-                });
+                        if(time_log.date.substring(0, 10) === start_date) {
+                            log_this_time = false;
+                        };           
+                    });
+                };
+                
             };
 
             if(log_this_time === true) {
@@ -67,7 +104,6 @@ const teamwork_controller = {
                     "timelog": {
                     "date": start_date,
                     "time": start_time,
-                    "description": "Vacances",
                     "hours": hours,
                     "minutes": minutes,
                     "hasStartTime": true,
