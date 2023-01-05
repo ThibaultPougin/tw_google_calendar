@@ -1,3 +1,6 @@
+const google_agenda_controller = require('./google_agenda_controller');
+const teamwork_controller = require('./teamwork_controller');
+
 const global_controller = {
 
     // Retourne le lundi de la semaine en cours

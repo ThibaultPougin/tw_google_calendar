@@ -1,6 +1,5 @@
 const google_agenda_controller = require('./google_agenda_controller');
 const teamwork_controller = require('./teamwork_controller');
-const cli_controller = require('./cli_controller');
 const global_controller = require('./global_controller');
 
 const synchro_controller = {

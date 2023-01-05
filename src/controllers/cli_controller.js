@@ -35,7 +35,7 @@ const cli_controller = {
     },
 
     // Gère le CLI interactif lorsque des événements de l'agenda google à qui aucune tâche Teamwork n'a pu être associée sont détéctés
-    handle_unlog_events: async (TW_ID, TW_PWD, total_log_hours, total_unlog_hours, total_unlog_minutes, unlog_events) => {
+    handle_unlog_events: async (TW_ID, TW_PWD, total_log_hours, total_log_minutes, total_unlog_hours, total_unlog_minutes, unlog_events) => {
 
         console.log(`Il reste ${total_unlog_hours} heures et ${total_unlog_minutes} minutes non synchronisées :`);
 
@@ -68,30 +68,45 @@ const cli_controller = {
                 };               
             };
 
-            cli_controller.add_events(TW_ID, TW_PWD, total_log_hours, total_unlog_minutes, unlog_events, event_to_add);
+            cli_controller.add_unlog_events(TW_ID, TW_PWD, total_log_hours, total_log_minutes, unlog_events, event_to_add);
 
         });
     },
 
     // Synchronise sur Teamwork les temps à ajouter
-    add_events: async (TW_ID, TW_PWD, total_log_hours, total_log_minutes, unlog_events, event_to_add) => {
-
-        total_log_minutes = 0;
+    add_unlog_events: async (TW_ID, TW_PWD, total_log_hours, total_log_minutes, unlog_events, event_to_add) => {
 
         for (const event of event_to_add) {
-            let find_event = unlog_events.find(e => e.id === event.event_id)
+            let find_event = unlog_events.find(e => e.id === event.event_id);
 
             let time = global_controller.format_time(find_event);
 
-            // teamwork_controller.log_time_teamwork(TW_ID, TW_PWD, event.teamwork_id, time.start_date, time.start_time, time.hours, time.minutes);
+            let log_infos = await teamwork_controller.log_time_teamwork(TW_ID, TW_PWD, event.teamwork_id, time.start_date, time.start_time, time.hours, time.minutes);
 
-            total_log_hours = total_log_hours + time.hours;
-            total_log_minutes = total_log_minutes + time.minutes;
+            console.log(`${emoji.get('star2')} Synchronisation de l'événement "${find_event.summary}" (${time.hours} heures et ${time.minutes} minutes) ...`);
 
-            if (total_log_minutes >= 60) {
-                total_log_minutes = total_log_minutes - 60;
-                total_log_hours++;
-            };
+            if(log_infos.is_log === true && log_infos.is_already_log === false) {
+                console.log(chalk.green(`${emoji.get('heavy_check_mark')}  Synchronisation de l'événement terminée !`));
+
+                total_log_hours = total_log_hours + time.hours;
+                total_log_minutes = total_log_minutes + time.minutes;
+
+                if (total_log_minutes >= 60) {
+                    total_log_minutes = total_log_minutes - 60;
+                    total_log_hours++;
+                };
+
+            } else if (log_infos.is_log === true && log_infos.is_already_log === true) {
+                console.log(chalk.yellow(`${emoji.get('smirk')}  Cet événement a déjà été synchronisé !`));
+            } else {
+                if(event.teamwork_id === undefined || event.teamwork_id === '') {
+                    console.log(chalk.red(`${emoji.get('x')} Veuillez renseigner un ID de tâche Teamwork pour ce type d'événement dans le fichier .env.`));
+                } else {
+                    console.log(chalk.red(`${emoji.get('x')} La tâche Teamwork avec l'ID ${event.teamwork_id} n'existe pas.`));
+                };
+            };            
+
+            
 
         };
 
@@ -193,21 +208,47 @@ const cli_controller = {
 
                 if(connected === true) {
 
-                    event_to_log.forEach(event => {
+                    for (const event of event_to_log) {
 
                         // On synchronise le temps de cet événement sur Teamwork
-                        // teamwork_controller.log_time_teamwork(TW_ID, TW_PWD, event.teamwork_id, event.date, event.start_time, event.hours, event.minutes);
+                        let log_infos = await teamwork_controller.log_time_teamwork(TW_ID, TW_PWD, event.teamwork_id, event.date, event.start_time, event.hours, event.minutes);
                         
                         console.log(`${emoji.get('star2')} Synchronisation de l'événement "${event.summary}" (${event.hours} heures et ${event.minutes} minutes) ...`);
-                        
-                    });
+
+                        if(log_infos.is_log === true && log_infos.is_already_log === false) {
+                            console.log(chalk.green(`${emoji.get('heavy_check_mark')}  Synchronisation de l'événement terminée !`));
+                        } else if (log_infos.is_log === true && log_infos.is_already_log === true) {
+                            console.log(chalk.yellow(`${emoji.get('smirk')}  Cet événement a déjà été synchronisé !`));
+
+                            total_log_hours = total_log_hours - event.hours;
+                            total_log_minutes = total_log_minutes - event.minutes;
+                            if(total_log_minutes < 0) {
+                                total_log_minutes = 60 + total_log_minutes;
+                                total_log_hours--;
+                    };
+                        } else {
+                            if(event.teamwork_id === undefined || event.teamwork_id === '') {
+                                console.log(chalk.red(`${emoji.get('x')} Veuillez renseigner un ID de tâche Teamwork pour ce type d'événement dans le fichier .env.`));
+                            } else {
+                                console.log(chalk.red(`${emoji.get('x')} La tâche Teamwork avec l'ID ${event.teamwork_id} n'existe pas.`));
+                            };
+
+                            total_log_hours = total_log_hours - event.hours;
+                            total_log_minutes = total_log_minutes - event.minutes;
+                            if(total_log_minutes < 0) {
+                                total_log_minutes = 60 + total_log_minutes;
+                                total_log_hours--;
+                            };
+                        };
+
+                    };
 
                     console.log(chalk.green.bold(`${emoji.get('green_heart')} ${total_log_hours} heures et ${total_log_minutes} minutes ont été synchronisées !${emoji.get('green_heart')}`));
 
                     if(unlog_events.length > 0) {
 
                         // Si des événements sans tâche Teamwork associée sont présents
-                        cli_controller.handle_unlog_events(TW_ID, TW_PWD, total_log_hours, total_unlog_hours, total_unlog_minutes, unlog_events);
+                        cli_controller.handle_unlog_events(TW_ID, TW_PWD, total_log_hours, total_log_minutes, total_unlog_hours, total_unlog_minutes, unlog_events);
 
                     }; 
                 } else {
@@ -229,21 +270,53 @@ const cli_controller = {
 
         if(connected === true) {
 
-            event_to_log.forEach(event => {
+            for (const event of event_to_log) {
+
+                console.log(`${emoji.get('star2')} Synchronisation de l'événement "${event.summary}" (${event.hours} heures et ${event.minutes} minutes) ...`);
 
                 // On synchronise le temps de cet événement sur Teamwork
-                // teamwork_controller.log_time_teamwork(TW_ID, TW_PWD, event.teamwork_id, event.date, event.start_time, event.hours, event.minutes);
-                
-                console.log(`${emoji.get('star2')} Synchronisation de l'événement "${event.summary}" (${event.hours} heures et ${event.minutes} minutes) ...`);
-                
-            });
+                let log_infos = await teamwork_controller.log_time_teamwork(TW_ID, TW_PWD, event.teamwork_id, event.date, event.start_time, event.hours, event.minutes);
+
+                if(log_infos.is_log === true && log_infos.is_already_log === false) {
+                    console.log(chalk.green(`${emoji.get('heavy_check_mark')}  Synchronisation de l'événement terminée !`));
+                } else if (log_infos.is_log === true && log_infos.is_already_log === true) {
+                    console.log(chalk.yellow(`${emoji.get('smirk')} Cet événement a déjà été synchronisé !`));
+                    
+                    total_log_hours = total_log_hours - event.hours;
+                    total_log_minutes = total_log_minutes - event.minutes;
+                    if(total_log_minutes < 0) {
+                        total_log_minutes = 60 + total_log_minutes;
+                        total_log_hours--;
+                    };
+    
+                } else {
+
+                    if(event.teamwork_id === undefined || event.teamwork_id === '') {
+                        console.log(chalk.red(`${emoji.get('x')} Veuillez renseigner un ID de tâche Teamwork pour ce type d'événement dans le fichier .env.`));
+                    } else {
+                        console.log(chalk.red(`${emoji.get('x')} La tâche Teamwork avec l'ID ${event.teamwork_id} n'existe pas.`));
+                    };
+
+                    total_log_hours = total_log_hours - event.hours;
+                    total_log_minutes = total_log_minutes - event.minutes;
+                    if(total_log_minutes < 0) {
+                        total_log_minutes = 60 + total_log_minutes;
+                        total_log_hours--;
+                    };
+                };
+            };
+
+            if(total_log_hours < 0) {
+                total_log_hours = 0;
+                total_log_minutes = 0;
+            };
 
             console.log(chalk.green.bold(`${emoji.get('green_heart')} ${total_log_hours} heures et ${total_log_minutes} minutes ont été synchronisées !${emoji.get('green_heart')}`));
 
             if(unlog_events.length > 0) {
 
                 // Si des événements sans tâche Teamwork associée sont présents
-                cli_controller.handle_unlog_events(TW_ID, TW_PWD, total_log_hours, total_unlog_hours, total_unlog_minutes, unlog_events);
+                cli_controller.handle_unlog_events(TW_ID, TW_PWD, total_log_hours, total_log_minutes, total_unlog_hours, total_unlog_minutes, unlog_events);
 
             }; 
         } else {
@@ -356,7 +429,7 @@ const cli_controller = {
                 cli_controller.handle_add_task_id(tag_name, tag);
             } else {
 
-                cli_controller.handle_add_tag(tag_name, tag, taskId['TaskId']);
+                cli_controller.handle_add_tag(tag_name, tag, taskId['TaskId?']);
 
             };
 
@@ -461,7 +534,7 @@ const cli_controller = {
                 {
                     "Nom": element,
                     "Tag": all_tags[element]["tag"],
-                    "ID tâche Teamwork": process.env[all_tags[element]["variable_environnement"]]
+                    "ID tâche Teamwork": process.env[all_tags[element]["variable_environnement"]] ? process.env[all_tags[element]["variable_environnement"]] : all_tags[element]["task_id"]
 
                 }
             )
@@ -480,12 +553,14 @@ const cli_controller = {
 
             let time = global_controller.format_time(event);
 
+            let french_date = time.start_date.substring(8, 10) + "-" + time.start_date.substring(5, 7) + "-" + time.start_date.substring(0, 4);
+
             let question2_answers = await cli_controller.create_question2_answers();
 
             let question = [{
                 type: 'list',
                 name: 'Question 1 ' + event.id,
-                message: `Souhaitez-vous synchroniser cet événement : ${event.summary} du ${time.start_date} de ${time.start_time} à ${time.end_time} (${time.hours} heures ${time.minutes} minutes) ?`,
+                message: `Souhaitez-vous synchroniser cet événement : ${event.summary} du ${french_date} de ${time.start_time} à ${time.end_time} (${time.hours} heures ${time.minutes} minutes) ?`,
                 choices: ['Oui', 'Non'],
             }, {
                 type: 'list',
