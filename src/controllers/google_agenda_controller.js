@@ -34,7 +34,6 @@ const google_agenda_controller = {
             return events;
     
         } catch (error) {
-            // console.log(error);
             return events;
         };
     }
