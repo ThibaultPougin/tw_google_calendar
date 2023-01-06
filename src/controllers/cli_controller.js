@@ -5,7 +5,6 @@ const fs = require("fs");
 
 const teamwork_controller = require('./teamwork_controller');
 const global_controller = require('./global_controller');
-const synchro_controller = require('./synchro_controller');
 
 let tags_file = fs.readFileSync('./config/tags.json');
 let all_tags = JSON.parse(tags_file);
@@ -101,17 +100,16 @@ const cli_controller = {
             } else {
                 if(event.teamwork_id === undefined || event.teamwork_id === '') {
                     console.log(chalk.red(`${emoji.get('x')} Veuillez renseigner un ID de tâche Teamwork pour ce type d'événement dans le fichier .env.`));
-                } else {
+                } else if(log_infos.task_not_exist === true) {
                     console.log(chalk.red(`${emoji.get('x')} La tâche Teamwork avec l'ID ${event.teamwork_id} n'existe pas.`));
+                } else {
+                    console.log(chalk.red(`${emoji.get('x')} Problème dans la synchronisation de cette tâche.`));
                 };
-            };            
-
-            
-
+            };
         };
 
         console.log(chalk.green.bold(`${emoji.get('green_heart')} Fin de la synchronisation ! Nombre d'heures totales synchronisées : ${total_log_hours} heures et ${total_log_minutes} minutes !${emoji.get('green_heart')}`));
-
+        cli_controller.handle_queFaire_question();
     },
 
     handle_queFaire_question: () => {
@@ -132,7 +130,6 @@ const cli_controller = {
 
             } else if (answer['QueFaire?'] === 'Ajouter un tag') {
                 
-                //TODO
                 cli_controller.handle_add_tag_Name_question();
 
             } else if (answer['QueFaire?'] === 'Supprimer un tag') {
@@ -140,47 +137,45 @@ const cli_controller = {
                 cli_controller.handle_delete_tag_question();
 
             };
-        
         });
-      
     },
 
     handle_continue_question: async () => {
 
-                //On récupère les événements de l'agenda Google
-                let events = await synchro_controller.format_events();
+        //On récupère les événements de l'agenda Google
+        let events = await global_controller.format_events();
 
-                if(events !== undefined) {
+        if(events !== undefined) {
 
-                    inquirer.prompt([{
-                        type: 'list',
-                        name: 'Continue?',
-                        message: `${events.total_log_hours} heures et ${events.total_log_minutes} minutes vont être synchronisées sur Teamwork. Souhaitez-vous continuer ?`,
-                        choices: ['Oui', 'Non']
-                    }])
-                    .then(answer => {
-                        if(answer['Continue?'] === 'Oui') {
+            inquirer.prompt([{
+                type: 'list',
+                name: 'Continue?',
+                message: `${events.total_log_hours} heures et ${events.total_log_minutes} minutes vont être synchronisées sur Teamwork. Souhaitez-vous continuer ?`,
+                choices: ['Oui', 'Non']
+            }])
+            .then(answer => {
+                if(answer['Continue?'] === 'Oui') {
 
-                            if(process.env.TEAMWORK_USERNAME === undefined || process.env.TEAMWORK_USERNAME === '' || process.env.TEAMWORK_PASSWORD === undefined || process.env.TEAMWORK_PASSWORD === '') {
-                                cli_controller.handle_tw_credentials_question(events.event_to_log, events.total_log_hours, events.total_log_minutes, events.total_unlog_hours, events.total_unlog_minutes, events.unlog_events);
-                            } else {
-            
-                                TW_ID = process.env.TEAMWORK_USERNAME;
-                                TW_PWD = process.env.TEAMWORK_PASSWORD;
-            
-                                cli_controller.handle_no_tw_credentials_question(events.event_to_log, events.total_log_hours, events.total_log_minutes, events.total_unlog_hours, events.total_unlog_minutes, events.unlog_events);
-                            };
-                        } else {
-                            cli_controller.handle_queFaire_question();
-                        };
-                    });
-                    
+                    if(process.env.TEAMWORK_USERNAME === undefined || process.env.TEAMWORK_USERNAME === '' || process.env.TEAMWORK_PASSWORD === undefined || process.env.TEAMWORK_PASSWORD === '') {
+                        cli_controller.handle_tw_credentials_question(events.event_to_log, events.total_log_hours, events.total_log_minutes, events.total_unlog_hours, events.total_unlog_minutes, events.unlog_events);
+                    } else {
+    
+                        TW_ID = process.env.TEAMWORK_USERNAME;
+                        TW_PWD = process.env.TEAMWORK_PASSWORD;
+    
+                        cli_controller.handle_no_tw_credentials_question(events.event_to_log, events.total_log_hours, events.total_log_minutes, events.total_unlog_hours, events.total_unlog_minutes, events.unlog_events);
+                    };
                 } else {
-                    //Connexion à Google calendar refusée
-                    console.log(chalk.red.bold(`${emoji.get('exclamation')}Problème de récupération des événements Google calendar. Veuillez cocher l'option "Rendre disponible pour HELLIO SOLUTIONS" dans les paramètres de l'agenda Google ${emoji.get('exclamation')}`));
                     cli_controller.handle_queFaire_question();
+                };
+            });
+            
+        } else {
+            //Connexion à Google calendar refusée
+            console.log(chalk.red.bold(`${emoji.get('exclamation')}Problème de récupération des événements Google calendar. Veuillez cocher l'option "Rendre disponible pour HELLIO SOLUTIONS" dans les paramètres de l'agenda Google ${emoji.get('exclamation')}`));
+            cli_controller.handle_queFaire_question();
 
-                };        
+        };        
     },
 
     handle_tw_credentials_question: (event_to_log, total_log_hours, total_log_minutes, total_unlog_hours, total_unlog_minutes, unlog_events) => {
@@ -229,8 +224,10 @@ const cli_controller = {
                         } else {
                             if(event.teamwork_id === undefined || event.teamwork_id === '') {
                                 console.log(chalk.red(`${emoji.get('x')} Veuillez renseigner un ID de tâche Teamwork pour ce type d'événement dans le fichier .env.`));
-                            } else {
+                            } else if(log_infos.task_not_exist === true) {
                                 console.log(chalk.red(`${emoji.get('x')} La tâche Teamwork avec l'ID ${event.teamwork_id} n'existe pas.`));
+                            } else {
+                                console.log(chalk.red(`${emoji.get('x')} Problème dans la synchronisation de cette tâche.`));
                             };
 
                             total_log_hours = total_log_hours - event.hours;
@@ -293,8 +290,10 @@ const cli_controller = {
 
                     if(event.teamwork_id === undefined || event.teamwork_id === '') {
                         console.log(chalk.red(`${emoji.get('x')} Veuillez renseigner un ID de tâche Teamwork pour ce type d'événement dans le fichier .env.`));
-                    } else {
+                    } else if(log_infos.task_not_exist === true) {
                         console.log(chalk.red(`${emoji.get('x')} La tâche Teamwork avec l'ID ${event.teamwork_id} n'existe pas.`));
+                    } else {
+                        console.log(chalk.red(`${emoji.get('x')} Problème dans la synchronisation de cette tâche.`));
                     };
 
                     total_log_hours = total_log_hours - event.hours;
@@ -437,6 +436,7 @@ const cli_controller = {
            
     },
 
+    // Permet l'ajout d'un tag
     handle_add_tag: (tag_name, tag, task_id) => {
 
         let tag_obj = {
@@ -499,6 +499,7 @@ const cli_controller = {
 
     },
 
+    // Permet de supprimer un tag
     handle_delete_tag: (tag) => {
 
         let deleted_tag;
@@ -524,6 +525,7 @@ const cli_controller = {
       
     },
 
+    // Permet de visualiser les tags existants
     handle_show_tag: () => {
 
         let tags = [];

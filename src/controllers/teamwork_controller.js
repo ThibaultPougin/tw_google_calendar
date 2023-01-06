@@ -1,8 +1,6 @@
 const fetch = require('node-fetch');
 const fs = require("fs");
 
-const global_controller = require('./global_controller');
-
 const tags_file = fs.readFileSync('./config/tags.json');
 const all_tags = JSON.parse(tags_file);
 
@@ -65,14 +63,28 @@ const teamwork_controller = {
 
         return tw_answer;
     },
+
+    // Vérifie si une date est un jour compris entre lundi et vendredi
+    verif_if_week_day: (date) => {
+
+        let day_number = new Date(date).getDay();
+
+        if (day_number >= 1 && day_number <= 5) {
+            return true;
+        } else {
+            return false;
+        };
+    },
     
-    // Renseigne un temps sur Teamwork
+    // Renseigne un temps sur Teamwork si l'événement est un événement de la semaine et si l'événement n'a pas déjà été synchronisé
     log_time_teamwork: async (teamwork_username, teamwork_password, task_id, start_date, start_time, hours, minutes) => {
 
         let is_log = false;
         let is_already_log = false;
+        let problem_log_task = false;
+        let task_not_exist = false;
 
-        let is_week_day = global_controller.verif_if_week_day(start_date);
+        let is_week_day = teamwork_controller.verif_if_week_day(start_date);
 
         if (is_week_day) {
 
@@ -135,8 +147,19 @@ const teamwork_controller = {
 
                         if(answer.status === 201) {
                             is_log = true;
+                        } else if(answer.status === 400) {
+                            is_log = false;
+                            tw_infos = await answer.json();
+
+                            if(tw_infos.errors[0].detail.includes('task not found')) {
+                                task_not_exist = true;
+                            } else {
+                                problem_log_task = true;
+                            };                            
+
                         } else {
                             is_log = false;
+                            problem_log_task = true;
                         };             
                         
                     });
@@ -144,12 +167,13 @@ const teamwork_controller = {
                 } catch (error) {
                     console.log(error);
                     is_log = false;
+                    problem_log_task = true;
                 };
 
             };
         };
         
-        return { is_log, is_already_log };
+        return { is_log, is_already_log, problem_log_task, task_not_exist };
     },
 
     // Récupère l'id de la tâche teamwork en fonction des tags renseigné dans le fichier tags.json
