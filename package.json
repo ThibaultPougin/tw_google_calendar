@@ -24,6 +24,7 @@
     "fs": "^0.0.1-security",
     "googleapis": "^105.0.0",
     "inquirer": "^8.2.5",
+    "inquirer-date-prompt": "^2.0.1",
     "node-emoji": "^1.11.0",
     "node-fetch": "^2.6.1"
   }

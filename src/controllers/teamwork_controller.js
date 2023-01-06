@@ -154,6 +154,8 @@ const teamwork_controller = {
                             if(tw_infos.errors[0].detail.includes('task not found')) {
                                 task_not_exist = true;
                             } else {
+
+                                
                                 problem_log_task = true;
                             };                            
 

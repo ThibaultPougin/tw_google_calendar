@@ -1,4 +1,5 @@
 const inquirer = require('inquirer');
+const DatePrompt = require('inquirer-date-prompt');
 const chalk = require('chalk');
 const emoji = require('node-emoji');
 const fs = require("fs");
@@ -123,7 +124,8 @@ const cli_controller = {
         .then(answer => {
 
             if(answer['QueFaire?'] === 'Synchroniser mon temps') {
-                cli_controller.handle_continue_question();
+                // cli_controller.handle_continue_question();
+                cli_controller.handle_select_date_question();
             } else if (answer['QueFaire?'] === 'Voir les tags') {
 
                 cli_controller.handle_show_tag();
@@ -140,10 +142,42 @@ const cli_controller = {
         });
     },
 
-    handle_continue_question: async () => {
+    handle_select_date_question: async () => {
+
+        inquirer.registerPrompt("date", DatePrompt);
+
+        inquirer.prompt([{
+            type: 'date',
+            name: 'startDate',
+            message: `Veuillez renseigner une date de début de synchronisation :`,
+            format: { month: "short", hour: undefined, minute: undefined },
+            locale: "fr-FR"
+        }])
+        .then(startDateAnswer => {
+
+            let startDate = startDateAnswer['startDate'].toISOString().split('T')[0] + 'T00:00:00+01:00';
+            
+            inquirer.prompt([{
+                type: 'date',
+                name: 'endDate',
+                message: `Veuillez renseigner une date de fin de synchronisation :`,
+                format: { month: "short", hour: undefined, minute: undefined },
+                locale: "fr-FR"
+            }])
+            .then(endDateAnswer => {
+    
+                let endDate = endDateAnswer['endDate'].toISOString().split('T')[0] + 'T23:00:00+01:00';
+
+                cli_controller.handle_continue_question(startDate, endDate);
+
+            }); 
+        });        
+    },
+
+    handle_continue_question: async (startDate, endDate) => {
 
         //On récupère les événements de l'agenda Google
-        let events = await global_controller.format_events();
+        let events = await global_controller.format_events(startDate, endDate);
 
         if(events !== undefined) {
 
@@ -247,7 +281,10 @@ const cli_controller = {
                         // Si des événements sans tâche Teamwork associée sont présents
                         cli_controller.handle_unlog_events(TW_ID, TW_PWD, total_log_hours, total_log_minutes, total_unlog_hours, total_unlog_minutes, unlog_events);
 
-                    }; 
+                    } else {
+                        cli_controller.handle_queFaire_question();
+                    };
+
                 } else {
 
                     console.log(chalk.red.bold(`${emoji.get('exclamation')}Identifiants incorrects ${emoji.get('exclamation')}`));
@@ -317,7 +354,10 @@ const cli_controller = {
                 // Si des événements sans tâche Teamwork associée sont présents
                 cli_controller.handle_unlog_events(TW_ID, TW_PWD, total_log_hours, total_log_minutes, total_unlog_hours, total_unlog_minutes, unlog_events);
 
-            }; 
+            } else {
+                cli_controller.handle_queFaire_question();
+            };
+
         } else {
 
             console.log(chalk.red.bold(`${emoji.get('exclamation')}Identifiants incorrects ${emoji.get('exclamation')}`));
