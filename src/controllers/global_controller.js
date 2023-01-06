@@ -21,6 +21,20 @@ const global_controller = {
         return friday.toISOString().split('T')[0];
     },
 
+    // s
+    verify_if_day_include: (startDate, endDate, dayToVerify) => {
+      
+        let d1 = startDate.split("-");
+        let d2 = endDate.split("-");
+        let c = dayToVerify.split("-");
+
+        let from = new Date(d1[0], parseInt(d1[1])-1, d1[2]);  // -1 because months are from 0 to 11
+        let to = new Date(d2[0], parseInt(d2[1])-1, d2[2]);
+        let check = new Date(c[0], parseInt(c[1])-1, c[2]);
+
+        return check >= from && check <= to;
+    },
+
     // Calcul et retourne la date de début, l'heure de début, l'heure de fin, la durée (en heures et en minutes) d'un événement au bon format
     format_time: (event) => {
     
@@ -91,8 +105,10 @@ const global_controller = {
                         };
 
                         let is_week_day = teamwork_controller.verif_if_week_day(final_day);
+
+                        let day_include = global_controller.verify_if_day_include(startDate.substring(0, 10), endDate.substring(0, 10), final_day)
     
-                        if(is_week_day === true) {
+                        if(is_week_day === true && day_include === true) {
                             event['dayToLog'].push(final_day); 
                         };          
                         
@@ -106,7 +122,16 @@ const global_controller = {
 
                     if(is_week_day === true) {
 
-                        let teamwork_id = teamwork_controller.get_teamwork_task_id(event);
+                        let teamwork_id = undefined;
+                        let tw_type = undefined;
+
+                        if(teamwork_controller.get_teamwork_task_id(event) && teamwork_controller.get_teamwork_task_id(event).teamwork_id) {
+                            teamwork_id = teamwork_controller.get_teamwork_task_id(event).teamwork_id;
+                        };
+
+                        if(teamwork_controller.get_teamwork_task_id(event) && teamwork_controller.get_teamwork_task_id(event).tw_type) {
+                            tw_type = teamwork_controller.get_teamwork_task_id(event).tw_type;
+                        };
     
                         if(teamwork_id !== undefined) {
         
@@ -116,12 +141,12 @@ const global_controller = {
         
                                 event['dayToLog'].forEach(date => {
         
-                                    event_to_log.push({ summary: event.summary, teamwork_id: teamwork_id, date: date, start_time: time.start_time, hours: time.hours, minutes: time.minutes });
+                                    event_to_log.push({ summary: event.summary, teamwork_id: teamwork_id, date: date, start_time: time.start_time, hours: time.hours, minutes: time.minutes, tw_type: tw_type });
                                 });
         
                             } else {
 
-                                event_to_log.push({ summary: event.summary, teamwork_id: teamwork_id, date: time.start_date, start_time: time.start_time, hours: time.hours, minutes: time.minutes });
+                                event_to_log.push({ summary: event.summary, teamwork_id: teamwork_id, date: time.start_date, start_time: time.start_time, hours: time.hours, minutes: time.minutes, tw_type: tw_type });
                             };
         
                             total_log_hours = total_log_hours + time.hours;
@@ -133,7 +158,19 @@ const global_controller = {
                             };                    
                             
                         } else {
-                            unlog_events.push(event);
+
+                            event["tw_type"] = tw_type;
+
+                            if(event['isDayEvent'] === true) {
+        
+                                event['dayToLog'].forEach(date => {
+        
+                                    unlog_events.push({ summary: event.summary, id: event.id + date ,start: { date: date, dateTime: date + event.start.dateTime.slice(10) }, end: { date: event.end.date, dateTime: event.end.dateTime }, tw_type: tw_type });
+                                });
+        
+                            } else {
+                                unlog_events.push(event);
+                            };                                                       
         
                             let time = global_controller.format_time(event);
         

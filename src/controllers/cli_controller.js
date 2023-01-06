@@ -57,14 +57,28 @@ const cli_controller = {
 
                 for (const tag in all_tags) {
 
-                    if(question.includes('Question 2') && answers[question] === tag) {
-                        variable_environnement = all_tags[tag]['variable_environnement'];
-                        event_to_add.push({event_id: question.split(' ').pop(), teamwork_id: process.env[variable_environnement]});
+                    if(question.includes('Question 2') && answers[question].includes(tag)) {
+
+                        let teamwork_id = undefined;
+                        let tw_type = undefined;
+
+                        if(all_tags[tag]['variable_environnement'] !== undefined) {
+                            let variable_environnement = all_tags[tag]['variable_environnement'];
+                            teamwork_id = process.env[variable_environnement];
+                        } else if(all_tags[tag]['tw_id'] !== undefined) {
+                            teamwork_id = all_tags[tag]['tw_id'];
+                        };
+
+                        tw_type = all_tags[tag]['type'];
+                        event_to_add.push({event_id: question.split(' ').pop(), teamwork_id: teamwork_id, tw_type: tw_type});
                     };
                 };
 
-                if(question.includes('Question 3')) {
-                    event_to_add.push({event_id: question.split(' ').pop(), teamwork_id: answers[question]});
+                if(question.includes('Question 4')) {
+
+                    let tw_type = answers['Question 3 ' + question.split(' ').pop()];
+
+                    event_to_add.push({event_id: question.split(' ').pop(), teamwork_id: answers[question], tw_type: tw_type});
                 };               
             };
 
@@ -77,11 +91,12 @@ const cli_controller = {
     add_unlog_events: async (TW_ID, TW_PWD, total_log_hours, total_log_minutes, unlog_events, event_to_add) => {
 
         for (const event of event_to_add) {
+
             let find_event = unlog_events.find(e => e.id === event.event_id);
 
             let time = global_controller.format_time(find_event);
 
-            let log_infos = await teamwork_controller.log_time_teamwork(TW_ID, TW_PWD, event.teamwork_id, time.start_date, time.start_time, time.hours, time.minutes);
+            let log_infos = await teamwork_controller.log_time_teamwork(TW_ID, TW_PWD, event.teamwork_id, time.start_date, time.start_time, time.hours, time.minutes, event.tw_type);
 
             console.log(`${emoji.get('star2')} Synchronisation de l'événement "${find_event.summary}" (${time.hours} heures et ${time.minutes} minutes) ...`);
 
@@ -102,9 +117,9 @@ const cli_controller = {
                 if(event.teamwork_id === undefined || event.teamwork_id === '') {
                     console.log(chalk.red(`${emoji.get('x')} Veuillez renseigner un ID de tâche Teamwork pour ce type d'événement dans le fichier .env.`));
                 } else if(log_infos.task_not_exist === true) {
-                    console.log(chalk.red(`${emoji.get('x')} La tâche Teamwork avec l'ID ${event.teamwork_id} n'existe pas.`));
+                    console.log(chalk.red(`${emoji.get('x')} La tâche ou le projet Teamwork avec l'ID ${event.teamwork_id} n'existe pas.`));
                 } else {
-                    console.log(chalk.red(`${emoji.get('x')} Problème dans la synchronisation de cette tâche.`));
+                    console.log(chalk.red(`${emoji.get('x')} Problème dans la synchronisation de cette événement.`));
                 };
             };
         };
@@ -240,7 +255,7 @@ const cli_controller = {
                     for (const event of event_to_log) {
 
                         // On synchronise le temps de cet événement sur Teamwork
-                        let log_infos = await teamwork_controller.log_time_teamwork(TW_ID, TW_PWD, event.teamwork_id, event.date, event.start_time, event.hours, event.minutes);
+                        let log_infos = await teamwork_controller.log_time_teamwork(TW_ID, TW_PWD, event.teamwork_id, event.date, event.start_time, event.hours, event.minutes, event.tw_type);
                         
                         console.log(`${emoji.get('star2')} Synchronisation de l'événement "${event.summary}" (${event.hours} heures et ${event.minutes} minutes) ...`);
 
@@ -259,9 +274,9 @@ const cli_controller = {
                             if(event.teamwork_id === undefined || event.teamwork_id === '') {
                                 console.log(chalk.red(`${emoji.get('x')} Veuillez renseigner un ID de tâche Teamwork pour ce type d'événement dans le fichier .env.`));
                             } else if(log_infos.task_not_exist === true) {
-                                console.log(chalk.red(`${emoji.get('x')} La tâche Teamwork avec l'ID ${event.teamwork_id} n'existe pas.`));
+                                console.log(chalk.red(`${emoji.get('x')} La tâche ou le projet Teamwork avec l'ID ${event.teamwork_id} n'existe pas.`));
                             } else {
-                                console.log(chalk.red(`${emoji.get('x')} Problème dans la synchronisation de cette tâche.`));
+                                console.log(chalk.red(`${emoji.get('x')} Problème dans la synchronisation de cet événement.`));
                             };
 
                             total_log_hours = total_log_hours - event.hours;
@@ -309,7 +324,7 @@ const cli_controller = {
                 console.log(`${emoji.get('star2')} Synchronisation de l'événement "${event.summary}" (${event.hours} heures et ${event.minutes} minutes) ...`);
 
                 // On synchronise le temps de cet événement sur Teamwork
-                let log_infos = await teamwork_controller.log_time_teamwork(TW_ID, TW_PWD, event.teamwork_id, event.date, event.start_time, event.hours, event.minutes);
+                let log_infos = await teamwork_controller.log_time_teamwork(TW_ID, TW_PWD, event.teamwork_id, event.date, event.start_time, event.hours, event.minutes, event.tw_type);
 
                 if(log_infos.is_log === true && log_infos.is_already_log === false) {
                     console.log(chalk.green(`${emoji.get('heavy_check_mark')}  Synchronisation de l'événement terminée !`));
@@ -328,9 +343,9 @@ const cli_controller = {
                     if(event.teamwork_id === undefined || event.teamwork_id === '') {
                         console.log(chalk.red(`${emoji.get('x')} Veuillez renseigner un ID de tâche Teamwork pour ce type d'événement dans le fichier .env.`));
                     } else if(log_infos.task_not_exist === true) {
-                        console.log(chalk.red(`${emoji.get('x')} La tâche Teamwork avec l'ID ${event.teamwork_id} n'existe pas.`));
+                        console.log(chalk.red(`${emoji.get('x')} La tâche ou le projet Teamwork avec l'ID ${event.teamwork_id} n'existe pas.`));
                     } else {
-                        console.log(chalk.red(`${emoji.get('x')} Problème dans la synchronisation de cette tâche.`));
+                        console.log(chalk.red(`${emoji.get('x')} Problème dans la synchronisation de cet événement.`));
                     };
 
                     total_log_hours = total_log_hours - event.hours;
@@ -402,7 +417,8 @@ const cli_controller = {
 
                 } else {
 
-                    cli_controller.handle_add_tag_question(answer_name['NameTag?']);
+                    // cli_controller.handle_add_tag_question(answer_name['NameTag?']);
+                    cli_controller.handle_add_tag_type_question(answer_name['NameTag?']);
                 };
 
             };           
@@ -411,7 +427,21 @@ const cli_controller = {
       
     },
 
-    handle_add_tag_question: (tag_name) => {
+    handle_add_tag_type_question: (tag_name) => {
+
+        return inquirer.prompt([{
+            type: 'list',
+            name: 'Type?',
+            message: `Avec quel type d'objet TeamWork souhaitez-vous synchroniser le temps associer cet événement ? :`,
+            choices: ['Tâche', 'Projet']
+        }])
+        .then(type_answer => {
+
+            cli_controller.handle_add_tag_question(tag_name, type_answer['Type?']);
+        });
+    },
+
+    handle_add_tag_question: (tag_name, tag_type) => {
 
         return inquirer.prompt([{
             type: 'input',
@@ -445,30 +475,29 @@ const cli_controller = {
 
                 } else {
 
-                    cli_controller.handle_add_task_id(tag_name, tag_answer['Tag?']);
-                    // cli_controller.handle_add_tag(tag_name, tag_answer['Tag?']);
+                    cli_controller.handle_add_task_id(tag_name, tag_type, tag_answer['Tag?']);
                 };
 
             };
         });
     },
 
-    handle_add_task_id: (tag_name, tag) => {
+    handle_add_task_id: (tag_name, tag_type, tag) => {
 
         return inquirer.prompt([{
             type: 'input',
             name: 'TaskId?',
-            message: `Quel est l'ID de la tâche Teamwork associée au tag ${tag} ? :`
+            message: tag_type === 'Tâche' ? `Quel est l'ID de la tâche Teamwork associée au tag ${tag} ? :` : `Quel est l'ID du projet Teamwork associé au tag ${tag} ? :`
         }])
         .then(taskId => {
 
-            if (taskId['TaskId?'] === '') {
+            if (taskId['TaskId?'] === '' || isNaN(taskId['TaskId?'])) {
 
                 console.log('Merci de renseigner un ID valide');
-                cli_controller.handle_add_task_id(tag_name, tag);
+                cli_controller.handle_add_task_id(tag_name, tag_type, tag);
             } else {
 
-                cli_controller.handle_add_tag(tag_name, tag, taskId['TaskId?']);
+                cli_controller.handle_add_tag(tag_name, tag_type, tag, taskId['TaskId?']);
 
             };
 
@@ -477,13 +506,14 @@ const cli_controller = {
     },
 
     // Permet l'ajout d'un tag
-    handle_add_tag: (tag_name, tag, task_id) => {
+    handle_add_tag: (tag_name, tag_type, tag, task_id) => {
 
         let tag_obj = {
             tag: tag,
             variable_environnement: undefined,
             cli_choice: true,
-            task_id: task_id
+            type:tag_type,
+            tw_id: task_id
         };
 
         all_tags[tag_name] = tag_obj;
@@ -576,7 +606,8 @@ const cli_controller = {
                 {
                     "Nom": element,
                     "Tag": all_tags[element]["tag"],
-                    "ID tâche Teamwork": process.env[all_tags[element]["variable_environnement"]] ? process.env[all_tags[element]["variable_environnement"]] : all_tags[element]["task_id"]
+                    "Teamwork type": all_tags[element]["type"],
+                    "Teamwork ID": process.env[all_tags[element]["variable_environnement"]] ? process.env[all_tags[element]["variable_environnement"]] : all_tags[element]["tw_id"]
 
                 }
             )
@@ -607,16 +638,30 @@ const cli_controller = {
             }, {
                 type: 'list',
                 name: 'Question 2 ' + event.id,
-                message: `Quel est le type de l'événement ?`,
+                message: `A quel tâche ou projet TeamWork associer cet événement ?`,
                 choices: question2_answers,
                 when: (answers) => answers['Question 1 ' + event.id] === 'Oui'
             },
             {
-                type: 'input',
+                type: 'list',
                 name: 'Question 3 ' + event.id,
-                message: `Indiquez l'ID de la tâche Teamwork :`,
+                message: `Indiquez le type :`,
+                choices: ['Tâche', 'Projet'],
                 when: (answers) => answers['Question 2 ' + event.id] === 'Autre'
-            }];
+            },
+            {
+                type: 'input',
+                name: 'Question 4 ' + event.id,
+                message: `Indiquez l'ID de la tâche Teamwork :`,
+                when: (answers) => answers['Question 2 ' + event.id] === 'Autre' && answers['Question 3 ' + event.id] === 'Tâche'
+            },
+            {
+                type: 'input',
+                name: 'Question 4 ' + event.id,
+                message: `Indiquez l'ID de du projet Teamwork :`,
+                when: (answers) => answers['Question 2 ' + event.id] === 'Autre' && answers['Question 3 ' + event.id] === 'Projet'
+            }
+            ];
     
             return question;
 
@@ -631,7 +676,7 @@ const cli_controller = {
         for (const tag in all_tags) {
 
             if (all_tags[tag]['cli_choice'] === true) {
-                question2_answers.push(tag);
+                question2_answers.push(`${tag} (${all_tags[tag]['type']})`);
             };
         };
 

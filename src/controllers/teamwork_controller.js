@@ -37,13 +37,21 @@ const teamwork_controller = {
     },
 
     // Récupère les temps renseigné pour une tâche Teamwork
-    get_log_time_teamwork: async (teamwork_username, teamwork_password, task_id) => {
+    get_log_time_teamwork: async (teamwork_username, teamwork_password, task_id, tw_type) => {
 
         let tw_answer = undefined;
+
+        let url;
+
+        if(tw_type === "Tâche") {
+            url = 'https://helliosolutions.teamwork.com/projects/api/v2/tasks/' + task_id +'/time_entries.json?getTotals=true&includeSubTasks=1&page=1&pageSize=250&sortOrder=desc';
+        } else if(tw_type === "Projet") {
+            url = 'https://helliosolutions.teamwork.com/projects/api/v2/projects/' + task_id +'/time_entries.json?getTotals=true&includeSubTasks=1&page=1&pageSize=250&sortOrder=desc';
+        };
         
         try {
     
-            await fetch('https://helliosolutions.teamwork.com/projects/api/v2/tasks/' + task_id +'/time_entries.json?getTotals=true&includeSubTasks=1&page=1&pageSize=250&sortOrder=desc', {
+            await fetch(url, {
                 method: 'GET',
                 headers: {
                     'Authorization': 'Basic ' + Buffer.from(teamwork_username + ":" + teamwork_password).toString('base64')
@@ -77,7 +85,15 @@ const teamwork_controller = {
     },
     
     // Renseigne un temps sur Teamwork si l'événement est un événement de la semaine et si l'événement n'a pas déjà été synchronisé
-    log_time_teamwork: async (teamwork_username, teamwork_password, task_id, start_date, start_time, hours, minutes) => {
+    log_time_teamwork: async (teamwork_username, teamwork_password, task_id, start_date, start_time, hours, minutes, tw_type) => {
+
+        let url;
+
+        if(tw_type === "Tâche") {
+            url = 'https://helliosolutions.teamwork.com/projects/api/v3/tasks/' + task_id + '/time.json';
+        } else if(tw_type === "Projet") {
+            url = 'https://helliosolutions.teamwork.com/projects/api/v3/projects/' + task_id + '/time.json';
+        };
 
         let is_log = false;
         let is_already_log = false;
@@ -90,7 +106,7 @@ const teamwork_controller = {
 
             let log_this_time = true;
 
-            let log_time = await teamwork_controller.get_log_time_teamwork(teamwork_username, teamwork_password, task_id);
+            let log_time = await teamwork_controller.get_log_time_teamwork(teamwork_username, teamwork_password, task_id, tw_type);
             
             if (log_time) {
 
@@ -136,7 +152,7 @@ const teamwork_controller = {
             
                 try {
             
-                    await fetch('https://helliosolutions.teamwork.com/projects/api/v3/tasks/' + task_id + '/time.json', {
+                    await fetch(url, {
                         method: 'POST',
                         body: JSON.stringify(body),
                         headers: {
@@ -182,6 +198,7 @@ const teamwork_controller = {
     retrieve_tag: (event) => {
 
         let teamwork_id = undefined;
+        let tw_type = undefined;
 
         for (const tag in all_tags) {
 
@@ -189,11 +206,13 @@ const teamwork_controller = {
 
                 if(all_tags[tag]['variable_environnement'] !== undefined) {
                     let variable_environnement = all_tags[tag]['variable_environnement'];
+                    tw_type = all_tags[tag]['type'];
                     teamwork_id = process.env[variable_environnement];
-                    return teamwork_id;
-                } else if(all_tags[tag]['task_id'] !== undefined) {
-                    teamwork_id = all_tags[tag]['task_id'];
-                    return teamwork_id;
+                    return { teamwork_id, tw_type };
+                } else if(all_tags[tag]['tw_id'] !== undefined) {
+                    tw_type = all_tags[tag]['type'];
+                    teamwork_id = all_tags[tag]['tw_id'];
+                    return { teamwork_id, tw_type };
                 };                
             };
         };
@@ -202,31 +221,50 @@ const teamwork_controller = {
     // Récupère l'id de la tâche Teamwork en fonction de l'événement google agenda
     get_teamwork_task_id: (event) => {
 
-        let teamwork_id = undefined; 
+        let teamwork_id = undefined;
+        let tw_type = undefined; 
       
-        if(event.summary && event.summary.includes('https://helliosolutions.teamwork.com') && !event.attendees) {
+        if(event.summary && event.summary.includes('https://helliosolutions.teamwork.com')) {
             
             const task = 'tasks/';
-            const index = event.summary.indexOf(task);
+            const project = 'projects/';
+            const task_index = event.summary.indexOf(task);
+            const project_index = event.summary.indexOf(project);
 
-            if(index !== -1) {
+            if(task_index !== -1) {
                 const length = task.length;
-                const string1 = event.summary.slice(index + length);
+                const id = event.summary.slice(task_index + length);
 
-                if (string1.match(/[0-9]+/)) {
+                if (id.match(/[0-9]+/)) {
 
-                    teamwork_id = string1.match(/[0-9]+/)[0];
+                    teamwork_id = id.match(/[0-9]+/)[0];
+                    tw_type = 'Tâche';
+
+                };
+            } else if (project_index !== -1) {
+                const length = project.length;
+                const id = event.summary.slice(project_index + length);
+
+                if (id.match(/[0-9]+/)) {
+
+                    teamwork_id = id.match(/[0-9]+/)[0];
+                    tw_type = 'Projet';
 
                 };
             };        
                        
         } else if (event.summary && !event.summary.includes('https://helliosolutions.teamwork.com')) {
             
-            teamwork_id = teamwork_controller.retrieve_tag(event);
-
+            if(teamwork_controller.retrieve_tag(event) && teamwork_controller.retrieve_tag(event).teamwork_id) {
+                teamwork_id = teamwork_controller.retrieve_tag(event).teamwork_id;
+            };
+            
+            if(teamwork_controller.retrieve_tag(event) && teamwork_controller.retrieve_tag(event).tw_type) {
+                tw_type = teamwork_controller.retrieve_tag(event).tw_type;
+            };
         };
 
-        return teamwork_id;
+        return { teamwork_id, tw_type };
     }
 }
 
